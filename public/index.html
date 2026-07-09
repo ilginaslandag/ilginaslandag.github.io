@@ -48,16 +48,31 @@
   button.refresh:hover { filter: brightness(1.1); }
   button.refresh:disabled { opacity: .5; cursor: wait; }
 
-  .filters { max-width: 1400px; margin: 10px auto 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .filters { max-width: 1400px; margin: 10px auto 0; display: flex; flex-direction: column; gap: 8px; }
+  .chip-row {
+    display: flex; gap: 8px; align-items: center;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; scroll-snap-type: x proximity;
+  }
+  .chip-row::-webkit-scrollbar { display: none; }
   .chip {
     background: var(--surface); border: 1px solid var(--border); color: var(--muted);
     border-radius: 999px; padding: 5px 14px; font-size: 13px; cursor: pointer; user-select: none;
-    transition: all .15s;
+    transition: background .15s, color .15s, border-color .15s, transform .1s;
+    flex: 0 0 auto; scroll-snap-align: start; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
   }
   .chip:hover { color: var(--text); border-color: var(--muted); }
+  .chip:active { transform: scale(.95); }
   .chip.active { background: var(--accent); color: #1a1200; border-color: var(--accent); font-weight: 600; }
   .chip.region.active { background: var(--accent2); color: #fff; border-color: var(--accent2); }
-  .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+  .chip .cnt {
+    font-size: 11px; font-weight: 700;
+    background: rgba(139,152,169,.16); color: inherit;
+    border-radius: 999px; padding: 1px 7px; min-width: 14px; text-align: center;
+  }
+  .chip .cnt:empty { display: none; }
+  .chip.active .cnt { background: rgba(0,0,0,.16); }
 
   main { max-width: 1400px; margin: 20px auto; padding: 0 24px 60px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
@@ -100,8 +115,18 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   @media (max-width: 600px) {
-    #search { width: 100%; }
+    header { padding: 10px 14px; }
+    h1 { font-size: 17px; }
+    .meta { font-size: 11px; }
+    #search { width: 100%; order: 3; }
     .grid { grid-template-columns: 1fr; }
+    main { padding: 0 14px 60px; }
+    .chip { padding: 9px 15px; font-size: 14px; }
+    .chip-row {
+      margin: 0 -14px; padding: 0 14px;
+      -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent);
+      mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent);
+    }
   }
 </style>
 </head>
@@ -115,16 +140,19 @@
     <button class="refresh" id="refreshBtn">Yenile</button>
   </div>
   <div class="filters" id="catFilters">
-    <span class="chip active" data-cat="all">Tümü</span>
-    <span class="chip" data-cat="borsa">📊 Borsa</span>
-    <span class="chip" data-cat="altin">🥇 Altın &amp; Emtia</span>
-    <span class="chip" data-cat="doviz">💵 Döviz</span>
-    <span class="chip" data-cat="ekonomi">🏦 Ekonomi</span>
-    <span class="chip" data-cat="kripto">🪙 Kripto</span>
-    <span class="sep"></span>
-    <span class="chip region active" data-region="all">🌍 Hepsi</span>
-    <span class="chip region" data-region="tr">🇹🇷 Türkiye</span>
-    <span class="chip region" data-region="global">🌐 Dünya</span>
+    <div class="chip-row">
+      <span class="chip active" data-cat="all">Tümü <b class="cnt" data-cnt="all"></b></span>
+      <span class="chip" data-cat="borsa">📊 Borsa <b class="cnt" data-cnt="borsa"></b></span>
+      <span class="chip" data-cat="altin">🥇 Altın &amp; Emtia <b class="cnt" data-cnt="altin"></b></span>
+      <span class="chip" data-cat="doviz">💵 Döviz <b class="cnt" data-cnt="doviz"></b></span>
+      <span class="chip" data-cat="ekonomi">🏦 Ekonomi <b class="cnt" data-cnt="ekonomi"></b></span>
+      <span class="chip" data-cat="kripto">🪙 Kripto <b class="cnt" data-cnt="kripto"></b></span>
+    </div>
+    <div class="chip-row">
+      <span class="chip region active" data-region="all">🌍 Hepsi <b class="cnt" data-cnt-r="all"></b></span>
+      <span class="chip region" data-region="tr">🇹🇷 Türkiye <b class="cnt" data-cnt-r="tr"></b></span>
+      <span class="chip region" data-region="global">🌐 Dünya <b class="cnt" data-cnt-r="global"></b></span>
+    </div>
   </div>
 </header>
 
@@ -153,7 +181,27 @@ function esc(s) {
   return d.innerHTML;
 }
 
+function updateCounts() {
+  const q = state.q.toLocaleLowerCase("tr");
+  const matches = a => (!q || (a.title + " " + a.description + " " + a.source).toLocaleLowerCase("tr").includes(q));
+  const catCounts = { all: 0 }, regCounts = { all: 0 };
+  for (const a of allArticles) {
+    if (!matches(a)) continue;
+    if (state.region === "all" || a.region === state.region) {
+      catCounts.all++;
+      catCounts[a.category] = (catCounts[a.category] || 0) + 1;
+    }
+    if (state.cat === "all" || a.category === state.cat) {
+      regCounts.all++;
+      regCounts[a.region] = (regCounts[a.region] || 0) + 1;
+    }
+  }
+  document.querySelectorAll(".cnt[data-cnt]").forEach(el => el.textContent = catCounts[el.dataset.cnt] || 0);
+  document.querySelectorAll(".cnt[data-cnt-r]").forEach(el => el.textContent = regCounts[el.dataset.cntR] || 0);
+}
+
 function render() {
+  updateCounts();
   const q = state.q.toLocaleLowerCase("tr");
   const list = allArticles.filter(a =>
     (state.cat === "all" || a.category === state.cat) &&
@@ -223,6 +271,7 @@ document.getElementById("catFilters").addEventListener("click", (e) => {
     state.region = chip.dataset.region;
     document.querySelectorAll(".chip[data-region]").forEach(c => c.classList.toggle("active", c === chip));
   }
+  chip.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   render();
 });
 
