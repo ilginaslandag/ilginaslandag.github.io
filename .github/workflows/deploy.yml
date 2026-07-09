@@ -29,6 +29,10 @@ jobs:
           node-version: 20
       - name: Haberleri çek (news.json üret)
         run: node scripts/fetch-news.js
+      - name: Telefona bildirim gönder (yeni haber özeti)
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: node scripts/notify.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
