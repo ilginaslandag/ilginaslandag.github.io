@@ -4,9 +4,10 @@ on:
   push:
     branches: [main]
   schedule:
-    # Saat başı 8. ve 38. dakika: GitHub, :00/:30 gibi yoğun dakikalardaki
-    # zamanlanmış işleri erteleyip atlayabiliyor; tenha dakikalar daha güvenilir.
-    - cron: "8,38 * * * *"
+    # GitHub'ın ücretsiz zamanlayıcısı planlı çalışmaların önemli kısmını atlıyor
+    # (bu repoda ~%70 gözlendi). Saatte 4 tenha dakika: atlamalara rağmen
+    # ortalama güncelleme aralığını ~30 dk civarında tutar.
+    - cron: "3,18,33,48 * * * *"
   workflow_dispatch:
 
 permissions:
