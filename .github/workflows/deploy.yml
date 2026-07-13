@@ -4,7 +4,9 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "*/30 * * * *" # her 30 dakikada bir taze haber
+    # Saat başı 8. ve 38. dakika: GitHub, :00/:30 gibi yoğun dakikalardaki
+    # zamanlanmış işleri erteleyip atlayabiliyor; tenha dakikalar daha güvenilir.
+    - cron: "8,38 * * * *"
   workflow_dispatch:
 
 permissions:

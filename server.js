@@ -46,8 +46,9 @@ const FEEDS = [
     url: "https://www.investing.com/rss/news_25.rss" },
   { id: "investing-commod", name: "Investing.com Emtia", region: "global", category: "altin",
     url: "https://www.investing.com/rss/news_11.rss" },
-  { id: "mining", name: "Mining.com", region: "global", category: "altin",
-    url: "https://www.mining.com/feed/" },
+  // Mining.com, GitHub Actions IP'lerini 403 ile engellediği için Google News üzerinden alınıyor.
+  { id: "gnews-mining", name: "Google News · Gold Mining", region: "global", category: "altin",
+    url: "https://news.google.com/rss/search?q=%22gold%20mining%22%20OR%20%22gold%20miners%22&hl=en-US&gl=US&ceid=US:en" },
   { id: "gnews-gold", name: "Google News · Gold", region: "global", category: "altin",
     url: "https://news.google.com/rss/search?q=%22gold%20price%22%20OR%20%22gold%20market%22&hl=en-US&gl=US&ceid=US:en" },
   { id: "gnews-markets", name: "Google News · Markets", region: "global", category: "borsa",
@@ -142,7 +143,7 @@ function parseFeed(xml) {
 // ---------------------------------------------------------------------------
 // Getirme + önbellek
 // ---------------------------------------------------------------------------
-async function fetchFeed(feed) {
+async function fetchFeedOnce(feed) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -176,6 +177,15 @@ async function fetchFeed(feed) {
   }
 }
 
+// Geçici hatalara (zaman aşımı, anlık 5xx) karşı bir kez daha dene.
+async function fetchFeed(feed) {
+  const first = await fetchFeedOnce(feed);
+  if (first.ok && first.items.length) return first;
+  await new Promise((r) => setTimeout(r, 2000));
+  const second = await fetchFeedOnce(feed);
+  return second.ok && second.items.length ? second : first;
+}
+
 let cache = { ts: 0, payload: null, refreshing: null };
 
 async function buildNews() {
@@ -196,7 +206,7 @@ async function buildNews() {
     ok: results[i].ok, count: results[i].items.length,
     error: results[i].ok ? null : results[i].error,
   }));
-  return { updatedAt: new Date().toISOString(), articles: articles.slice(0, 600), sources };
+  return { updatedAt: new Date().toISOString(), articles: articles.slice(0, 900), sources };
 }
 
 async function getNews(force) {
