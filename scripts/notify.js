@@ -2,8 +2,11 @@
 // canlıdaki (eski) news.json ile yeni üretileni karşılaştırır,
 // yeni haber varsa ntfy.sh üzerinden telefona özet bildirimi gönderir.
 // Bildirim hatası yayını asla engellemez (her durumda 0 ile çıkar).
-const fs = require("fs");
-const path = require("path");
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const TOPIC = process.env.NTFY_TOPIC;
 const SITE = "https://ilginaslandag.github.io";

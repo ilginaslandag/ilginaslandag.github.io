@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node scripts/fetch-news.js",
+  "outputDirectory": "public",
+  "functions": {
+    "api/news.js": { "maxDuration": 60 }
+  }
+}

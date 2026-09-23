@@ -1,8 +1,12 @@
-// GitHub Actions tarafından çalıştırılır: tüm kaynakları çekip
-// public/news.json dosyasını üretir (GitHub Pages statik yayını için).
-const fs = require("fs");
-const path = require("path");
-const { buildNews } = require("../server.js");
+// Statik yedek üreteci: public/news.json dosyasını yazar.
+// Vercel'de derleme adımı olarak çalışır — /api/news erişilemezse ön yüz
+// bu dosyaya düşer (index.html içindeki yedek yol).
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { buildNews } from "../lib/news.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 buildNews()
   .then((data) => {

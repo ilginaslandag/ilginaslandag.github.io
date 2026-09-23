@@ -1,0 +1,10 @@
+{
+  "name": "borsa-haber-merkezi",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "build:news": "node scripts/fetch-news.js"
+  }
+}
