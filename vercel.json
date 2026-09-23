@@ -3,6 +3,7 @@
   "buildCommand": "node scripts/fetch-news.js",
   "outputDirectory": "public",
   "functions": {
-    "api/news.js": { "maxDuration": 60 }
+    "api/news.js": { "maxDuration": 60 },
+    "api/notify.js": { "maxDuration": 60 }
   }
 }
