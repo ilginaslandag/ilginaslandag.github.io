@@ -2,6 +2,7 @@
 // Haberleri istek anında çeker. Tazelik CDN önbelleğiyle dengelenir:
 // ziyaretçi her zaman anında yanıt alır, fonksiyon ise ~3 dakikada bir çalışır.
 import { buildNews } from "../lib/news.js";
+import { tetikle } from "../lib/tetik.js";
 
 // CDN bu süre boyunca önbellekten servis eder.
 const CDN_TTL_S = 180;
@@ -13,6 +14,20 @@ export default async function handler(req, res) {
 
   try {
     const data = await buildNews();
+    // Ziyaretçi odaklı tetikleme: bu fonksiyon yalnızca CDN önbelleği dolunca çalışır
+    // (en sık ~3 dk'da bir). GitHub Pages yayını 20 dk'dan eskiyse ve sürmüyorsa
+    // workflow'u başlatır — hiçbir zamanlayıcıya bağlı olmayan ek katman.
+    // Doğrulama beklenmez (yanıt gecikmesin); dispatch ~1 sn sürer.
+    if (process.env.GH_PAT && !force) {
+      try {
+        data.tetik = await Promise.race([
+          tetikle({ dogrula: false }),
+          new Promise((r) => setTimeout(() => r({ tetiklendi: false, hata: "zaman aşımı" }), 6000)),
+        ]);
+      } catch (err) {
+        data.tetik = { tetiklendi: false, hata: err.message };
+      }
+    }
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     // GitHub Pages kopyası (ilginaslandag.github.io) bu API'yi çapraz kaynaktan çağırır.
     res.setHeader("Access-Control-Allow-Origin", "*");

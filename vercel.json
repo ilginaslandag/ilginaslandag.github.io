@@ -9,6 +9,9 @@
     },
     "api/notify.js": {
       "maxDuration": 60
+    },
+    "api/tetik.js": {
+      "maxDuration": 60
     }
   }
 }
