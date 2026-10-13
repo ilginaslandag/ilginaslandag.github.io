@@ -73,20 +73,27 @@ export default async function handler(req, res) {
   if (!topic) return res.status(500).json({ error: "NTFY_TOPIC tanımlı değil" });
 
   try {
-    const [{ gonderilmis, mesajVar }, veri] = await Promise.all([gecmisiOku(topic), buildNews()]);
+    // Önce haberleri çek (yavaş, ~3-20 sn), ntfy geçmişini EN SON oku: eşzamanlı iki çağrının
+    // aynı başlığı iki kez göndermesi için kalan pencere milisaniyelere iner.
+    const veri = await buildNews();
+    const { gonderilmis } = await gecmisiOku(topic);
 
     const simdi = Date.now();
     const yeni = veri.articles.filter((a) => {
-      if (gonderilmis.has(norm(a.title))) return false;
+      // Hafıza anahtarı, mesaja yazılan (120 karaktere kırpılmış) başlıkla aynı olmalı.
+      if (gonderilmis.has(norm(a.title.slice(0, 120)))) return false;
+      // Kaynağın tarih vermediği öğeler her derlemede "şimdi" damgası alır; onları
+      // bildirme, yoksa hafıza (12 sa) dolunca her gün yeniden düşerler.
+      if (a.dateFallback) return false;
       const t = a.date ? new Date(a.date).getTime() : NaN;
       return !isNaN(t) && simdi - t <= TAZE_SAAT * 3600 * 1000;
     });
 
     if (!yeni.length) return res.status(200).json({ gonderilen: 0, durum: "yeni haber yok" });
 
-    // Önbellek boşsa bu ilk çalıştırmadır: başlıkları sessizce tohumla,
-    // yoksa son 6 saatin tamamı tek seferde telefona düşer.
-    const sessiz = !mesajVar;
+    // İlk çalıştırmada da yalnızca ilk parça görünür gider (en fazla CHUNK başlık);
+    // 12 saat sessiz geçen bir pencereden sonra gerçek haberin sessize düşmesi istenmez.
+    const sessiz = false;
 
     // Telefona her çağrıda en fazla BİR görünür bildirim düşer (ilk parça: en yeni
     // başlıklar). Kalan parçalar sessiz (priority 1) gider: telefonu rahatsız etmez,

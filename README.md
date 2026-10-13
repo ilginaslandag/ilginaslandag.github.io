@@ -31,3 +31,33 @@ Farklı bir port için: `PORT=8080 node local-server.js`
 ```
 
 Sunucu RSS ve Atom formatlarını destekler; kaynak sonuçları 5 dakika önbelleklenir.
+
+## Mimari ve otomatik tetikleme (2026-10)
+
+Site iki adreste yayında; ikisi de aynı koddan beslenir:
+
+| Adres | Nasıl taze kalır |
+|---|---|
+| **https://borsa-haber-merkezi.vercel.app** | `api/news.js` haberleri *istek anında* çeker (CDN önbelleği 3 dk). Hiçbir zamanlayıcıya bağlı değildir. |
+| **https://ilginaslandag.github.io** | Ön yüz önce Vercel API'sini okur (her zaman taze); API erişilemezse Actions'ın ürettiği `news.json`'a düşer. |
+
+Telefon bildirimleri `api/notify.js` üzerinden gider; tekilleştirme hafızası ntfy mesaj geçmişidir, bu yüzden
+birden fazla tetikleyici aynı ucu çağırsa bile aynı haber iki kez düşmez. Çağrı başına en fazla **bir** görünür bildirim.
+
+GitHub'ın ücretsiz cron zamanlayıcısı bu repoda planlı çalışmaların ~%95'ini atladığı için tetikleme katmanlıdır:
+
+1. **Claude bulut bekçisi** (saatlik, Mac'ten bağımsız; yalnızca `api.github.com` erişimi var): kapatılmış iş
+   akışını yeniden açar, son yayın 50 dk'dan eskiyse `workflow_dispatch` yapıp run'ın *gerçekten* oluştuğunu
+   doğrular (204 yetmez). Tetiklediği yayın bildirim ucunu çağırdığı için telefon bildirimleri de bu yoldan gider.
+   Yalnızca tetikleyemezse Claude uygulaması üzerinden push uyarısı atar.
+2. **deploy.yml cron** (`3,18,33,48`) + **tetikleyici.yml** (`11,41` ve `26,56`, `GITHUB_TOKEN` ile dispatch) — ikisi de
+   aynı güvenilmez GitHub zamanlayıcısına bağlı ek "piyango bileti"; bağımsız güvence değil, ücretsiz oldukları için duruyorlar.
+3. **60 gün kuralı (reaktif, sahte commit YOK)**: GitHub, public repoda 60 gün commit olmazsa zamanlayıcıyı
+   `disabled_inactivity` yapar (önce e-posta uyarısı gönderir). Sahte commit üreten "keepalive" kalıbını GitHub ToS
+   ihlali sayıp ilgili araçların depolarını kapattı; bu yüzden burada kullanılmaz. Bulut bekçisi kapanmayı görürse
+   belgelenmiş `PUT …/actions/workflows/{id}/enable` ucuyla yeniden açıp dispatch eder. Vercel kopyası etkilenmez.
+4. **Yerel görev** (`borsa-haber-tetikleyici`, 15 dk): yalnızca bu Mac'te Claude uygulaması açıkken ek katman.
+
+Vercel'e deploy: `npx vercel --prod` (proje `borsa-haber-merkezi`; env: `NTFY_TOPIC`, `NOTIFY_SECRET`, `SITE_URL`).
+Not: Vercel, kökteki `server.js`'i Node sunucu giriş noktası sanıp fonksiyonları derlemez — bu yüzden yerel sunucu
+`local-server.js` adındadır ve `vercel.json`'da `framework: null` ayarlıdır.

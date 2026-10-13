@@ -26,6 +26,7 @@ export default async function handler(req, res) {
   } catch (err) {
     // Hata yanıtı önbelleğe girmemeli; ön yüz news.json yedeğine düşer.
     res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Access-Control-Allow-Origin", "*");
     res.status(500).json({ error: err.message });
   }
 }

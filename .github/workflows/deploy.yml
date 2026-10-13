@@ -11,13 +11,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-deploy:
@@ -27,17 +27,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Repo canlılığı (GitHub, 60 gün commit olmayan repoda zamanlayıcıyı kapatır)
-        if: github.event_name != 'push'
-        run: |
-          son=$(git log -1 --format=%ct); gun=$(( ($(date +%s) - son) / 86400 ))
-          echo "Son commit $gun gün önce"
-          if [ "$gun" -ge 20 ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            date -u +"canlılık %Y-%m-%dT%H:%M:%SZ" > .trigger
-            git add .trigger && git commit -m "Canlılık: zamanlayıcının 60 gün kuralıyla kapanmasını önle" && git push
-          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 20

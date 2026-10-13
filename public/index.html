@@ -253,11 +253,15 @@ async function load(force) {
   try {
     // Kaynak sırası: aynı kökteki API (Vercel/yerel sunucu) → Vercel API (GitHub Pages
     // kopyası için, tetikleme gerektirmeden her zaman taze) → statik news.json yedeği.
-    const API_KAYNAKLARI = ["/api/news", "https://borsa-haber-merkezi.vercel.app/api/news"];
+    const VERCEL_API = "https://borsa-haber-merkezi.vercel.app/api/news";
+    const API_KAYNAKLARI = location.hostname.endsWith("github.io") ? [VERCEL_API] : ["/api/news", VERCEL_API];
+    // CDN'i atlayan tam tarama (?refresh=1) yalnızca yerel sunucuda: Vercel'de her "Yenile"
+    // tıklaması 17 kaynağı yeniden taratmasın; 3 dk'lık CDN kopyası zaten tazedir.
+    const bypass = force && (location.hostname === "localhost" || location.hostname === "127.0.0.1");
     let res = null;
     for (const url of API_KAYNAKLARI) {
       try {
-        const r = await fetch(url + (force ? "?refresh=1" : ""));
+        const r = await fetch(url + (bypass ? "?refresh=1" : ""));
         if (r.ok) { res = r; break; }
       } catch {}
     }

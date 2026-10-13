@@ -1,10 +1,11 @@
 name: Yedek tetikleyici
 
 # GitHub'ın ücretsiz zamanlayıcısı bu repoda planlı çalışmaların ~%95'ini atlıyor.
-# Her schedule girdisi bağımsız kuyruklanır: deploy.yml'deki cron'a ek olarak
-# farklı dakikalarda iki tetikleyici daha, asıl yayın iş akışını workflow_dispatch
-# ile başlatır. (GITHUB_TOKEN ile tetiklenen olaylar normalde yeni run yaratmaz;
-# workflow_dispatch ve repository_dispatch bu kuralın belgelenmiş istisnasıdır.)
+# Bu dosya AYNI güvenilmez zamanlayıcıya bağlı ek bir "piyango bileti"dir — bağımsız
+# bir güvence DEĞİLDİR (resmi doküman: yük yüksekse kuyruktaki işler düşürülebilir).
+# Asıl güvence saatlik Claude bulut bekçisidir (dışarıdan workflow_dispatch).
+# (GITHUB_TOKEN ile tetiklenen olaylar normalde yeni run yaratmaz; workflow_dispatch
+# ve repository_dispatch bu kuralın belgelenmiş istisnasıdır.)
 on:
   schedule:
     - cron: "11,41 * * * *"
@@ -27,7 +28,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Son 12 dakikada zaten bir yayın başladıysa gereksiz tekrar yapma.
-          son=$(gh run list -R "$GITHUB_REPOSITORY" --workflow deploy.yml --limit 1 --json createdAt --jq '.[0].createdAt')
+          suren=$(gh run list -R "$GITHUB_REPOSITORY" --workflow deploy.yml --status in_progress --limit 1 --json databaseId --jq 'length' 2>/dev/null || echo 0)
+          [ "${suren:-0}" -gt 0 ] && { echo "Yayın zaten sürüyor, atlanıyor"; exit 0; }
+          son=$(gh run list -R "$GITHUB_REPOSITORY" --workflow deploy.yml --status success --limit 1 --json createdAt --jq '.[0].createdAt' 2>/dev/null || true)
           if [ -n "$son" ]; then
             fark=$(( $(date +%s) - $(date -d "$son" +%s) ))
             echo "Son yayın $((fark/60)) dk önce"
