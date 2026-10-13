@@ -9,6 +9,10 @@ on:
     # ortalama güncelleme aralığını ~30 dk civarında tutar.
     - cron: "3,18,33,48 * * * *"
   workflow_dispatch:
+  # Saatlik Claude bulut bekçisi bu olayla tetikler (repository_dispatch yalnızca
+  # contents:write ister; bekçinin ortam kimliğinin actions:write'ı yok).
+  repository_dispatch:
+    types: [tetik]
 
 permissions:
   contents: read
