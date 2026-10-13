@@ -88,13 +88,17 @@ export default async function handler(req, res) {
     // yoksa son 6 saatin tamamı tek seferde telefona düşer.
     const sessiz = !mesajVar;
 
+    // Telefona her çağrıda en fazla BİR görünür bildirim düşer (ilk parça: en yeni
+    // başlıklar). Kalan parçalar sessiz (priority 1) gider: telefonu rahatsız etmez,
+    // ama ntfy geçmişine yazıldığı için tekilleştirme hafızasına girer.
     for (let i = 0; i < yeni.length; i += CHUNK) {
       const parca = yeni.slice(i, i + CHUNK);
+      const ilk = i === 0;
       await bildirimGonder(
         topic,
-        sessiz ? "Bildirimler etkinleştirildi" : `${yeni.length} yeni haber`,
+        sessiz ? "Bildirimler etkinleştirildi" : ilk ? `${yeni.length} yeni haber` : "(devamı — sessiz)",
         parca.map((a) => "• " + a.title.slice(0, 120)),
-        sessiz
+        sessiz || !ilk
       );
     }
 

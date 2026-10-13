@@ -5,12 +5,12 @@ Farklı kaynaklardan (Türkiye + dünya) borsa, altın, döviz ve yatırım habe
 ## Çalıştırma
 
 ```bash
-node server.js
+node local-server.js
 ```
 
 Sonra tarayıcıda **http://localhost:3939** adresini aç.
 
-Farklı bir port için: `PORT=8080 node server.js`
+Farklı bir port için: `PORT=8080 node local-server.js`
 
 ## Özellikler
 
