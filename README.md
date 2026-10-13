@@ -46,10 +46,15 @@ birden fazla tetikleyici aynı ucu çağırsa bile aynı haber iki kez düşmez.
 
 GitHub'ın ücretsiz cron zamanlayıcısı bu repoda planlı çalışmaların ~%95'ini atladığı için tetikleme katmanlıdır:
 
-1. **Claude bulut bekçisi** (saatlik, Mac'ten bağımsız; yalnızca `api.github.com` erişimi var): kapatılmış iş
-   akışını yeniden açar, son yayın 50 dk'dan eskiyse `workflow_dispatch` yapıp run'ın *gerçekten* oluştuğunu
-   doğrular (204 yetmez). Tetiklediği yayın bildirim ucunu çağırdığı için telefon bildirimleri de bu yoldan gider.
-   Yalnızca tetikleyemezse Claude uygulaması üzerinden push uyarısı atar.
+1. **Claude bulut bekçisi** (saatlik, Mac'ten bağımsız): Vercel'deki `/api/tetik?key=…` ucunu çağırır. Uç, GitHub
+   PAT'ı ile (yalnızca Vercel env'inde `GH_PAT`) deploy.yml'i tetikler ve run'ın *gerçekten* oluştuğunu doğrular
+   (204 yetmez); kapatılmış iş akışını yeniden açar. Bulut ortamının GitHub kimliği API'de salt okunur olduğu ve
+   proxy her Authorization başlığını ezdiği için bekçi GitHub'a doğrudan yazamaz — bu yüzden PAT Vercel'de durur.
+   Gereksinim: claude.ai/code → Environments → Default → Network access'e `borsa-haber-merkezi.vercel.app` eklenmeli.
+   Tetikleyemezse yalnızca o zaman Claude uygulaması üzerinden push uyarısı atar.
+1b. **Ziyaretçi odaklı tetikleme** (zamanlayıcısız): `/api/news` CDN önbelleği dolup yeniden çalıştığında (≤3 dk'da bir,
+   herhangi bir ziyaret ya da açık sekmenin 5 dk'lık otomatik yenilemesi) Pages yayını 20 dk'dan eskiyse workflow'u
+   başlatır. Site kullanıldığı sürece kendi kendini tazeler.
 2. **deploy.yml cron** (`3,18,33,48`) + **tetikleyici.yml** (`11,41` ve `26,56`, `GITHUB_TOKEN` ile dispatch) — ikisi de
    aynı güvenilmez GitHub zamanlayıcısına bağlı ek "piyango bileti"; bağımsız güvence değil, ücretsiz oldukları için duruyorlar.
 3. **60 gün kuralı (reaktif, sahte commit YOK)**: GitHub, public repoda 60 gün commit olmazsa zamanlayıcıyı
