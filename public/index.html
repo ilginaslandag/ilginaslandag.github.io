@@ -251,14 +251,17 @@ async function load(force) {
   const btn = document.getElementById("refreshBtn");
   btn.disabled = true; btn.textContent = "Yükleniyor…";
   try {
-    // Önce yerel sunucu API'sini dene; statik yayında (GitHub Pages) news.json'a düş.
-    let res;
-    try {
-      res = await fetch("/api/news" + (force ? "?refresh=1" : ""));
-      if (!res.ok) throw new Error("api yok");
-    } catch {
-      res = await fetch("news.json?t=" + Date.now());
+    // Kaynak sırası: aynı kökteki API (Vercel/yerel sunucu) → Vercel API (GitHub Pages
+    // kopyası için, tetikleme gerektirmeden her zaman taze) → statik news.json yedeği.
+    const API_KAYNAKLARI = ["/api/news", "https://borsa-haber-merkezi.vercel.app/api/news"];
+    let res = null;
+    for (const url of API_KAYNAKLARI) {
+      try {
+        const r = await fetch(url + (force ? "?refresh=1" : ""));
+        if (r.ok) { res = r; break; }
+      } catch {}
     }
+    if (!res) res = await fetch("news.json?t=" + Date.now());
     const data = await res.json();
     allArticles = data.articles || [];
     document.getElementById("updated").textContent =

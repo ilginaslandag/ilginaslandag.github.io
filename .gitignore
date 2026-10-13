@@ -5,3 +5,5 @@ public/news.json
 
 # Claude Code yerel yapılandırması
 .claude/
+.vercel
+.env*

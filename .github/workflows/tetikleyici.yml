@@ -1,0 +1,36 @@
+name: Yedek tetikleyici
+
+# GitHub'ın ücretsiz zamanlayıcısı bu repoda planlı çalışmaların ~%95'ini atlıyor.
+# Her schedule girdisi bağımsız kuyruklanır: deploy.yml'deki cron'a ek olarak
+# farklı dakikalarda iki tetikleyici daha, asıl yayın iş akışını workflow_dispatch
+# ile başlatır. (GITHUB_TOKEN ile tetiklenen olaylar normalde yeni run yaratmaz;
+# workflow_dispatch ve repository_dispatch bu kuralın belgelenmiş istisnasıdır.)
+on:
+  schedule:
+    - cron: "11,41 * * * *"
+    - cron: "26,56 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+concurrency:
+  group: yedek-tetikleyici
+  cancel-in-progress: true
+
+jobs:
+  tetikle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Yayın iş akışını başlat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Son 12 dakikada zaten bir yayın başladıysa gereksiz tekrar yapma.
+          son=$(gh run list -R "$GITHUB_REPOSITORY" --workflow deploy.yml --limit 1 --json createdAt --jq '.[0].createdAt')
+          if [ -n "$son" ]; then
+            fark=$(( $(date +%s) - $(date -d "$son" +%s) ))
+            echo "Son yayın $((fark/60)) dk önce"
+            [ "$fark" -lt 720 ] && { echo "Taze, atlanıyor"; exit 0; }
+          fi
+          gh workflow run deploy.yml -R "$GITHUB_REPOSITORY" --ref main && echo "deploy.yml tetiklendi"

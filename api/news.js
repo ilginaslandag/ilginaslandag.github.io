@@ -14,6 +14,8 @@ export default async function handler(req, res) {
   try {
     const data = await buildNews();
     res.setHeader("Content-Type", "application/json; charset=utf-8");
+    // GitHub Pages kopyası (ilginaslandag.github.io) bu API'yi çapraz kaynaktan çağırır.
+    res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader(
       "Cache-Control",
       force
